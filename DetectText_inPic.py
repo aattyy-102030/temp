@@ -4,11 +4,16 @@ from datetime import datetime
 import pytesseract
 from PIL import Image
 import pandas as pd
+import shutil
+
+# Clean up './Input/zip' folder at the beginning
+zip_folder = './Input/zip'
+if os.path.exists(zip_folder):
+    shutil.rmtree(zip_folder)
+os.makedirs(zip_folder, exist_ok=True)
 
 # Step 1: Rename .docx to .zip and move to './Input/zip'
 docx_folder = './Input/docx'
-zip_folder = './Input/zip'
-os.makedirs(zip_folder, exist_ok=True)
 
 for filename in os.listdir(docx_folder):
     if filename.endswith('.docx'):

@@ -1,54 +1,50 @@
 import os
 import zipfile
-import shutil
 from datetime import datetime
-from PIL import Image
 import pytesseract
+from PIL import Image
+import pandas as pd
 
-# 1. Wordファイルの拡張子を.zipに変更
-input_docx_folder = "./Input/docx"
-input_zip_folder = "./Input/zip"
+# Step 1: Rename .docx to .zip and move to './Input/zip'
+docx_folder = './Input/docx'
+zip_folder = './Input/zip'
+os.makedirs(zip_folder, exist_ok=True)
 
-if not os.path.exists(input_zip_folder):
-    os.makedirs(input_zip_folder)
+for filename in os.listdir(docx_folder):
+    if filename.endswith('.docx'):
+        os.rename(os.path.join(docx_folder, filename), os.path.join(zip_folder, filename.replace('.docx', '.zip')))
 
-for filename in os.listdir(input_docx_folder):
-    if filename.endswith(".docx"):
-        src = os.path.join(input_docx_folder, filename)
-        dst = os.path.join(input_zip_folder, filename.replace(".docx", ".zip"))
-        shutil.copy(src, dst)
+# Step 2: Unzip files to './Output/(Datetime)_DetectText-InPic'
+current_time = datetime.now().strftime('%Y%m%d-%H%M%S')
+output_folder = f'./Output/{current_time}_DetectText-InPic'
+os.makedirs(output_folder, exist_ok=True)
 
-# 2. .zipファイルを解凍
-execution_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-output_folder = f"./Output/{execution_time}_DetectText-InPic"
+table_data = []
 
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
+for filename in os.listdir(zip_folder):
+    if filename.endswith('.zip'):
+        word_filename = filename.replace('.zip', '.docx')
+        subfolder_name = os.path.join(output_folder, word_filename)
+        os.makedirs(subfolder_name, exist_ok=True)
 
-for filename in os.listdir(input_zip_folder):
-    if filename.endswith(".zip"):
-        zip_path = os.path.join(input_zip_folder, filename)
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(output_folder)
+        with zipfile.ZipFile(os.path.join(zip_folder, filename), 'r') as zip_ref:
+            zip_ref.extractall(subfolder_name)
+        
+        image_folder = os.path.join(subfolder_name, 'word', 'media')
+        if os.path.exists(image_folder):
+            for image_filename in os.listdir(image_folder):
+                if image_filename.endswith(('.png', '.jpg', '.jpeg')):
+                    image_path = os.path.join(image_folder, image_filename)
+                    image = Image.open(image_path)
+                    extracted_text = pytesseract.image_to_string(image, lang='eng')
 
-# 3 & 4. OCRと特定のテキストの検索
-target_word = "Apple"
-output_list = []
+                    if 'Apple' in extracted_text:
+                        table_data.append({
+                            'Detected Text': 'Apple',
+                            'Word File': word_filename,
+                            'Image File': image_filename
+                        })
 
-for root, dirs, files in os.walk(output_folder):
-    for filename in files:
-        if filename.endswith(('.png', '.jpg', '.jpeg')):
-            image_path = os.path.join(root, filename)
-            image = Image.open(image_path)
-            extracted_text = pytesseract.image_to_string(image, lang='eng')
-
-            if target_word in extracted_text:
-                output_list.append(filename)
-
-# 5. 結果をテキストファイルに出力
-result_file_path = os.path.join(output_folder, "Result.txt")
-with open(result_file_path, "w") as f:
-    for item in output_list:
-        f.write(f"{item}\n")
-
-print(f"Process completed. Check {output_folder} for Result.txt.")
+# Step 4: Write result to Excel file
+df = pd.DataFrame(table_data)
+df.to_excel(f'{output_folder}/Result.xlsx', index=False)

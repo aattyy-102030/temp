@@ -1,3 +1,19 @@
+'''
+Directory structure : 
+.
+├── DetectText_inPic.py
+├── Input
+│   ├── docx
+│   └── zip
+└── Output
+    └── YYYYMMDD-hhmmss_DetectText-InPic
+        ├── document1.docx  (Subfolder for each Word file)
+        │   └── ...        (Unzipped files and images)
+        ├── document2.docx  
+        │   └── ...
+        └── ...
+'''
+
 import os
 import zipfile
 from datetime import datetime

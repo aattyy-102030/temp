@@ -4,16 +4,11 @@ from datetime import datetime
 import pytesseract
 from PIL import Image
 import pandas as pd
-import shutil
-
-# Clean up './Input/zip' folder at the beginning
-zip_folder = './Input/zip'
-if os.path.exists(zip_folder):
-    shutil.rmtree(zip_folder)
-os.makedirs(zip_folder, exist_ok=True)
 
 # Step 1: Rename .docx to .zip and move to './Input/zip'
 docx_folder = './Input/docx'
+zip_folder = './Input/zip'
+os.makedirs(zip_folder, exist_ok=True)
 
 for filename in os.listdir(docx_folder):
     if filename.endswith('.docx'):
@@ -34,7 +29,7 @@ for filename in os.listdir(zip_folder):
 
         with zipfile.ZipFile(os.path.join(zip_folder, filename), 'r') as zip_ref:
             zip_ref.extractall(subfolder_name)
-        
+
         image_folder = os.path.join(subfolder_name, 'word', 'media')
         if os.path.exists(image_folder):
             for image_filename in os.listdir(image_folder):
@@ -43,9 +38,9 @@ for filename in os.listdir(zip_folder):
                     image = Image.open(image_path)
                     extracted_text = pytesseract.image_to_string(image, lang='eng')
 
-                    if 'Apple' in extracted_text:
+                    if 'JAPAN' in extracted_text:
                         table_data.append({
-                            'Detected Text': 'Apple',
+                            'Detected Text': 'JAPAN',
                             'Word File': word_filename,
                             'Image File': image_filename
                         })

@@ -1,37 +1,54 @@
 import os
+import zipfile
+import shutil
+from datetime import datetime
 from PIL import Image
 import pytesseract
 
-# Tesseract-OCRのパスを指定（Windowsの場合）
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# 1. Wordファイルの拡張子を.zipに変更
+input_docx_folder = "./Input/docx"
+input_zip_folder = "./Input/zip"
 
-# InputフォルダとOutputフォルダのパスを指定
-input_folder_path = "./Input"
-output_folder_path = "./Output"
+if not os.path.exists(input_zip_folder):
+    os.makedirs(input_zip_folder)
 
-# 特定の文字列（例："apple"）を設定
-target_word = "apple"
+for filename in os.listdir(input_docx_folder):
+    if filename.endswith(".docx"):
+        src = os.path.join(input_docx_folder, filename)
+        dst = os.path.join(input_zip_folder, filename.replace(".docx", ".zip"))
+        shutil.copy(src, dst)
 
-# 出力結果を保存するためのリスト
+# 2. .zipファイルを解凍
+execution_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+output_folder = f"./Output/{execution_time}_DetectText-InPic"
+
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+
+for filename in os.listdir(input_zip_folder):
+    if filename.endswith(".zip"):
+        zip_path = os.path.join(input_zip_folder, filename)
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(output_folder)
+
+# 3 & 4. OCRと特定のテキストの検索
+target_word = "Apple"
 output_list = []
 
-# Inputフォルダ内の各画像ファイルに対してOCRを実行
-for image_file in os.listdir(input_folder_path):
-    if image_file.endswith(('.png', '.jpg', '.jpeg')):
-        image_path = os.path.join(input_folder_path, image_file)
-        image = Image.open(image_path)
+for root, dirs, files in os.walk(output_folder):
+    for filename in files:
+        if filename.endswith(('.png', '.jpg', '.jpeg')):
+            image_path = os.path.join(root, filename)
+            image = Image.open(image_path)
+            extracted_text = pytesseract.image_to_string(image, lang='eng')
 
-        # OCRで画像内のテキストを抽出
-        extracted_text = pytesseract.image_to_string(image, lang='eng')
+            if target_word in extracted_text:
+                output_list.append(filename)
 
-        # 特定の文字列がテキスト内に存在するか確認
-        if target_word in extracted_text:
-            output_list.append(image_file)
-
-# 出力結果をOutputフォルダ内のresult.txtに保存
-result_file_path = os.path.join(output_folder_path, "result.txt")
+# 5. 結果をテキストファイルに出力
+result_file_path = os.path.join(output_folder, "Result.txt")
 with open(result_file_path, "w") as f:
     for item in output_list:
         f.write(f"{item}\n")
 
-print("Process completed. Check the Output folder for result.txt.")
+print(f"Process completed. Check {output_folder} for Result.txt.")
